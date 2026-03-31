@@ -2,7 +2,7 @@
 
 from config.db_conf import get_db
 from crud import news
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
@@ -45,5 +45,38 @@ async def get_news_list(
             "list": news_list,
             "total": total,
             "hasMore": hasMore,
+        },
+    }
+
+
+# 获取新闻详情
+@router.get("/detail")
+async def read_news_detail(
+    db: AsyncSession = Depends(get_db), news_id: int = Query(..., alias="id")
+):
+    # 获取新闻详情 + 浏览量+1 + 相关新闻
+    detail = await news.get_news_detail(db, news_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail="新闻不存在")
+
+    views_res = await news.increase_news_views(db, news_id)
+    if not views_res:
+        raise HTTPException(status_code=404, detail="新闻不存在")
+
+    related_news = await news.get_related_news(db, detail.category_id, news_id)
+
+    return {
+        "code": 200,
+        "message": "success",
+        "data": {
+            "id": detail.id,
+            "title": detail.title,
+            "content": detail.content,
+            "image": detail.image,
+            "author": detail.author,
+            "publishTime": detail.publish_time,
+            "categoryId": detail.category_id,
+            "views": detail.views,
+            "relatedNews": related_news,
         },
     }

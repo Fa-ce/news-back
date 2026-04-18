@@ -3,8 +3,9 @@
 from config.db_conf import get_db
 from crud import users
 from fastapi import APIRouter, Depends, HTTPException
-from schemas.users import UserRequest
+from schemas.users import UserAuthResponse, UserInfoResponse, UserRequest
 from sqlalchemy.ext.asyncio import AsyncSession
+from utils import response
 
 router = APIRouter()
 
@@ -21,16 +22,20 @@ async def register(db: AsyncSession = Depends(get_db), user: UserRequest = None)
     except users.UserAlreadyExistsError:
         raise HTTPException(status_code=200, detail="用户已存在")
 
-    return {
+    """ return {
         "code": 200,
         "message": "注册成功",
         "data": {
             "token": token,
             "userInfo": {
                 "id": new_user.id,
-                "username": new_user.username,
+                "username": new_user.username, 
                 "bio": new_user.bio,
                 "avatar": new_user.avatar,
             },
         },
-    }
+    } """
+    response_data = UserAuthResponse(
+        token=token, user_info=UserInfoResponse.model_validate(new_user)
+    )
+    return response.success_response(message="注册成功", data=response_data)

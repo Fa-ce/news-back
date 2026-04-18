@@ -3,8 +3,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import api_router
+from utils.exception_handlers import register_exception_handlers
 
 app = FastAPI()
+
+# 注册全局异常处理
+register_exception_handlers(app)
 
 # 注册路由
 app.include_router(api_router)

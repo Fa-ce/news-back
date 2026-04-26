@@ -1,6 +1,7 @@
 import traceback
 
 from fastapi import HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette import status
@@ -8,6 +9,18 @@ from starlette import status
 # 开发者模式：返回详细错误信息
 # 生产模式：返回简化错误信息
 DEBUG_MODE = True  # 当前保持开启
+
+
+def _format_validation_message(exc: RequestValidationError) -> str:
+    error = exc.errors()[0]
+    field = error.get("loc", [])[-1]
+    error_type = error.get("type")
+    ctx = error.get("ctx", {})
+
+    if field == "newPassword" and error_type == "string_too_short":
+        return f"新密码长度不能少于{ctx.get('min_length', 6)}位"
+
+    return error.get("msg", "请求参数错误")
 
 
 # 处理 HTTPException 异常，返回 JSON 格式的响应
@@ -28,6 +41,25 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Internal Server Error"},
         )
+
+
+# 处理请求参数校验错误
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    error_data = None
+    if DEBUG_MODE:
+        error_data = {
+            "error_type": "RequestValidationError",
+            "errors": exc.errors(),
+            "path": str(request.url),
+        }
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "code": 400,
+            "message": _format_validation_message(exc),
+            "data": error_data,
+        },
+    )
 
 
 # 处理数据库完整性约束

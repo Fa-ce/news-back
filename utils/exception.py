@@ -67,8 +67,12 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
     error_msg = str(exc.orig)
 
     # 判断具体的约束错误类型
-    if "username_UNIQUE" in error_msg or "Duplicate entry" in error_msg:
+    if "user_news_unique" in error_msg:
+        detail = "已收藏该新闻"
+    elif "username_UNIQUE" in error_msg:
         detail = "用户名已存在"
+    elif "Duplicate entry" in error_msg:
+        detail = "数据已存在"
     elif "FOREIGN KEY" in error_msg:
         detail = "关键数据不存在"
     else:

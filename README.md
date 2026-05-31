@@ -143,3 +143,30 @@ GET /api/news/detail?id=1
 	}
 }
 ```
+
+# 收藏列表总结
+
+定义模块化路由 → 定义模型类(参照数据库) → 封装CRUD → 路由逻辑调用
+
+1. ORM 联表查询写法
+   `select(查询的主体模型类，字段重命名).join(join的模型类，join的条件)`
+   ```py
+   	select(
+   			News,
+   			Favorite.created_at.label("favorite_time"),  # 给两个表的重复字段起别名
+   			Favorite.id.label("favorite_id"),  # 给两个表的重复字段起别名
+   	)
+   ```
+2. 模型类中，`UniqueConstraint`的作用
+   唯一约束
+   ```py
+   class Favorite(Base):
+    __tablename__ = "favorite"
+    # 创建索引
+    __table_args__ = (
+        UniqueConstraint(
+            "news_id", "user_id", name="user_news_unique"
+        ),  # UniqueConstraint  唯一约束
+        ……
+    )
+   ```
